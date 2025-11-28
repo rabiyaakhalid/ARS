@@ -2,58 +2,55 @@
 
 ARS is a random search method for training linear policies for continuous control problems, based on the paper ["Simple random search provides a competitive approach to reinforcement learning."](https://arxiv.org/abs/1803.07055) 
 
-## Prerequisites for running ARS
+This repo contains an updated and working version of the original Augmented Random Search implementation, adapted to run on a modern Python and Gym setup.
 
-Our ARS implementation relies on Python 3, OpenAI Gym version 0.9.3, mujoco-py 0.5.7, MuJoCo Pro version 1.31, and the Ray library for parallel computing.  
+## Install dependencies
 
-To install OpenAI Gym and MuJoCo dependencies follow the instructions here:
-https://github.com/openai/gym
-
-To install Ray execute:
-``` 
-pip install ray
-```
-For more information on Ray see http://ray.readthedocs.io/en/latest/. 
-
-## Running ARS
-
-First start Ray by executing a command of the following form:
+We install older NumPy (less than 2) because Gym breaks with NumPy 2.
+We also install Ray, Gym, MuJoCo environments and Pandas for reading logs.
 
 ```
-ray start --head --redis-port=6379 --num-workers=18
-```
-This command starts multiple Python processes on one machine for parallel computations with Ray. 
-Set "num_workers=X" for parallelizing ARS across X CPUs.
-For parallelzing ARS on a cluster follow the instructions here: http://ray.readthedocs.io/en/latest/using-ray-on-a-large-cluster.html.
-
-We recommend using single threaded linear algebra computations by setting: 
-```
-export MKL_NUM_THREADS=1
+pip3 install "numpy<2.0" ray gym mujoco "gymnasium[mujoco]" pandas
 ```
 
-To train a policy for HalfCheetah-v1, execute the following command: 
+## What was updated in the code
+
+- `ray start` was removed because Ray now starts automatically using `ray.init()`
+- `env.seed()` was replaced with `env.reset(seed=...)` because Gym removed the seed method
+- `env.spec.timestep_limit` was replaced with `env.spec.max_episode_steps`
+- Gym v1 environments like HalfCheetah-v1 are deprecated so we use HalfCheetah-v4
+- Fixed compatibility for reset and step return format as Gym now returns terminated and truncated
+- Minor fixes for saving policy weights
+
+## Running ARS on Different Environments
+
+You can train on multiple MuJoCo tasks. Just change the environment name in the command.
+
+Each environment has a recommended shift value based on the paper. Some of the enviroments are:
+
+### HalfCheetah
 
 ```
-python code/ars.py
+python3 code/ars.py --env_name HalfCheetah-v4 --shift 0 --n_iter 50 --n_workers 4
 ```
-
-All arguments passed into ARS are optional and can be modified to train other environments, use different hyperparameters, or use  different random seeds.
-For example, to train a policy for Humanoid-v1, execute the following command:
+### Swimmer
 
 ```
-python code/ars.py --env_name Humanoid-v1 --n_directions 230 --deltas_used 230 --step_size 0.02 --delta_std 0.0075 --n_workers 48 --shift 5
+python3 code/ars.py --env_name Swimmer-v4 --shift 0 --n_iter 50 --n_workers 4
 ```
 
-## Rendering Trained Policy
-
-To render a trained policy, execute a command of the following form:
+### Hopper
 
 ```
-python code/run_policy.py trained_polices/env_name/policy_directory_path/policy_file_name.npz env_name --render
+python3 code/ars.py --env_name Swimmer-v4 --shift 0 --n_iter 50 --n_workers 4
 ```
 
-For example, to render Humanoid-v1 with a galloping gait execute:
+To run longer training that matches the paper more closely, increase the number of iterations to around one thousand.
+
+#### Example
 
 ```
-python code/run_policy.py trained_policies/Humanoid-v1/policy_reward_11600/lin_policy_plus.npz Humanoid-v1 --render 
+python3 code/ars.py --env_name Hopper-v4 --shift 1 --n_iter 50 --n_workers 4
 ```
+**You can replace HalfCheetah-v4 with any of the other environments.**
+
