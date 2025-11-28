@@ -1,6 +1,6 @@
 # Augmented Random Search (ARS)
 
-ARS is a random search method for training linear policies for continuous control problems, based on the paper ["Simple random search provides a competitive approach to reinforcement learning."](https://arxiv.org/abs/1803.07055) 
+ARS is a random search method for training linear policies for continuous control problems, based on the paper ["Simple random search provides a competitive approach to reinforcement learning."](https://arxiv.org/abs/1803.07055)
 
 This repo contains an updated and working version of the original Augmented Random Search implementation, adapted to run on a modern Python and Gym setup.
 
@@ -24,6 +24,14 @@ pip3 install "numpy<2.0" ray gym mujoco "gymnasium[mujoco]" pandas
 
 ## Running ARS on Different Environments
 
+We recommend using single threaded linear algebra computations by setting:
+
+```
+export MKL_NUM_THREADS=1
+```
+
+All arguments passed into ARS are optional and can be modified to train other environments, use different hyperparameters, or use different random seeds.
+
 You can train on multiple MuJoCo tasks. Just change the environment name in the command.
 
 Each environment has a recommended shift value based on the paper. Some of the enviroments are:
@@ -33,6 +41,7 @@ Each environment has a recommended shift value based on the paper. Some of the e
 ```
 python3 code/ars.py --env_name HalfCheetah-v4 --shift 0 --n_iter 50 --n_workers 4
 ```
+
 ### Swimmer
 
 ```
@@ -42,7 +51,7 @@ python3 code/ars.py --env_name Swimmer-v4 --shift 0 --n_iter 50 --n_workers 4
 ### Hopper
 
 ```
-python3 code/ars.py --env_name Swimmer-v4 --shift 0 --n_iter 50 --n_workers 4
+python3 code/ars.py --env_name Hopper-v4 --shift 1 --n_iter 50 --n_workers 4
 ```
 
 To run longer training that matches the paper more closely, increase the number of iterations to around one thousand.
@@ -50,7 +59,8 @@ To run longer training that matches the paper more closely, increase the number 
 #### Example
 
 ```
-python3 code/ars.py --env_name Hopper-v4 --shift 1 --n_iter 50 --n_workers 4
-```
-**You can replace HalfCheetah-v4 with any of the other environments.**
+python3 code/ars.py --env_name HalfCheetah-v4 --shift 0 --n_iter 1000 --n_workers 8 --n_directions 320 --deltas_used 320
 
+```
+
+**You can replace HalfCheetah-v4 with any of the other environments.**
