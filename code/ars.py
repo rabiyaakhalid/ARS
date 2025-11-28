@@ -5,7 +5,6 @@ Aurelia Guy
 Benjamin Recht 
 '''
 
-import parser
 import time
 import os
 import numpy as np
@@ -33,7 +32,12 @@ class Worker(object):
 
         # initialize OpenAI environment for each worker
         self.env = gym.make(env_name)
-        self.env.seed(env_seed)
+        try:
+            self.env.reset(seed=env_seed)
+        except TypeError:
+            # fallback for very old gym versions
+            if hasattr(self.env, "seed"):
+                self.env.seed(env_seed)
 
         # each worker gets access to the shared noise table
         # with independent random streams for sampling
@@ -69,10 +73,20 @@ class Worker(object):
         total_reward = 0.
         steps = 0
 
-        ob = self.env.reset()
+        reset_out = self.env.reset()
+        if isinstance(reset_out, tuple):
+            ob = reset_out[0]
+        else:
+            ob = reset_out
         for i in range(rollout_length):
             action = self.policy.act(ob)
-            ob, reward, done, _ = self.env.step(action)
+            step_out = self.env.step(action)
+
+            if len(step_out) == 5:
+                ob, reward, terminated, truncated, info = step_out
+                done = terminated or truncated
+            else:
+                ob, reward, done, info = step_out
             steps += 1
             total_reward += (reward - shift)
             if done:
@@ -91,38 +105,45 @@ class Worker(object):
         for i in range(num_rollouts):
 
             if evaluate:
+                # evaluation rollouts without exploration noise
                 self.policy.update_weights(w_policy)
                 deltas_idx.append(-1)
-                
-                # set to false so that evaluation rollouts are not used for updating state statistics
+
+                # do not update state statistics during evaluation
                 self.policy.update_filter = False
 
-                # for evaluation we do not shift the rewards (shift = 0) and we use the
-                # default rollout length (1000 for the MuJoCo locomotion tasks)
-                reward, r_steps = self.rollout(shift = 0., rollout_length = self.env.spec.timestep_limit)
+                # choose a sensible max episode length
+                max_steps = self.rollout_length
+                if hasattr(self.env, "spec") and hasattr(self.env.spec, "max_episode_steps"):
+                    max_steps = self.env.spec.max_episode_steps
+
+                # for evaluation we do not shift the rewards
+                reward, r_steps = self.rollout(shift = 0.0, rollout_length = max_steps)
                 rollout_rewards.append(reward)
-                
+
             else:
+                # exploration rollouts with positive and negative perturbations
                 idx, delta = self.deltas.get_delta(w_policy.size)
-             
+
                 delta = (self.delta_std * delta).reshape(w_policy.shape)
                 deltas_idx.append(idx)
 
-                # set to true so that state statistics are updated 
+                # during training we update the state filter
                 self.policy.update_filter = True
 
-                # compute reward and number of timesteps used for positive perturbation rollout
+                # positive direction
                 self.policy.update_weights(w_policy + delta)
                 pos_reward, pos_steps  = self.rollout(shift = shift)
 
-                # compute reward and number of timesteps used for negative pertubation rollout
+                # negative direction
                 self.policy.update_weights(w_policy - delta)
-                neg_reward, neg_steps = self.rollout(shift = shift) 
+                neg_reward, neg_steps = self.rollout(shift = shift)
                 steps += pos_steps + neg_steps
 
                 rollout_rewards.append([pos_reward, neg_reward])
-                            
+
         return {'deltas_idx': deltas_idx, 'rollout_rewards': rollout_rewards, "steps" : steps}
+
     
     def stats_increment(self):
         self.policy.observation_filter.stats_increment()
@@ -310,9 +331,14 @@ class ARSLearner(object):
             if ((i + 1) % 10 == 0):
                 
                 rewards = self.aggregate_rollouts(num_rollouts = 100, evaluate = True)
-                w = ray.get(self.workers[0].get_weights_plus_stats.remote())
-                np.savez(self.logdir + "/lin_policy_plus", w)
-                
+                weights, mu, std = ray.get(self.workers[0].get_weights_plus_stats.remote())
+                np.savez(
+                    self.logdir + "/lin_policy_plus",
+                    weights=weights,
+                    mu=mu,
+                    std=std,
+                )
+                            
                 print(sorted(self.params.items()))
                 logz.log_tabular("Time", time.time() - start)
                 logz.log_tabular("Iteration", i + 1)
@@ -407,7 +433,7 @@ if __name__ == '__main__':
     parser.add_argument('--filter', type=str, default='MeanStdFilter')
 
     local_ip = socket.gethostbyname(socket.gethostname())
-    ray.init(redis_address= local_ip + ':6379')
+    ray.init()
     
     args = parser.parse_args()
     params = vars(args)

@@ -53,6 +53,6 @@ class LinearPolicy(Policy):
     def get_weights_plus_stats(self):
         
         mu, std = self.observation_filter.get_stats()
-        aux = np.asarray([self.weights, mu, std])
-        return aux
+        # return them separately instead of forcing into one array
+        return self.weights, mu, std
         
