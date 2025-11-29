@@ -34,33 +34,193 @@ All arguments passed into ARS are optional and can be modified to train other en
 
 You can train on multiple MuJoCo tasks. Just change the environment name in the command.
 
-Each environment has a recommended shift value based on the paper. Some of the enviroments are:
+Each environment has a recommended shift value based on the paper.
+For each enviroment, we will use the same hyerparamters as per paper.
 
-### HalfCheetah
+**Note: Gym version v1 environments have been deprecated and removed from newer Gym and MuJoCo versions hence we will be uisng v4 instead**
 
-```
-python3 code/ars.py --env_name HalfCheetah-v4 --shift 0 --n_iter 50 --n_workers 4
-```
+### ARS V2
 
-### Swimmer
-
-```
-python3 code/ars.py --env_name Swimmer-v4 --shift 0 --n_iter 50 --n_workers 4
-```
-
-### Hopper
+#### Swimmer
 
 ```
-python3 code/ars.py --env_name Hopper-v4 --shift 1 --n_iter 50 --n_workers 4
+python3 code/ars.py \
+  --env_name Swimmer-v4 \
+  --n_iter 1000 \
+  --n_workers 16 \
+  --n_directions 1 \
+  --deltas_used 1 \
+  --step_size 0.02 \
+  --delta_std 0.01 \
+  --shift 0 \
+  --filter MeanStdFilter
 ```
 
-To run longer training that matches the paper more closely, increase the number of iterations to around one thousand.
-
-#### Example
+#### Hopper
 
 ```
-python3 code/ars.py --env_name HalfCheetah-v4 --shift 0 --n_iter 1000 --n_workers 8 --n_directions 320 --deltas_used 320
-
+python3 code/ars.py \
+  --env_name Hopper-v4 \
+  --n_iter 1000 \
+  --n_workers 16 \
+  --n_directions 4 \
+  --deltas_used 4 \
+  --step_size 0.02 \
+  --delta_std 0.02 \
+  --shift 1 \
+  --filter MeanStdFilter
 ```
 
-**You can replace HalfCheetah-v4 with any of the other environments.**
+#### HalfCheetah
+
+```
+python3 code/ars.py \
+  --env_name HalfCheetah-v4 \
+  --n_iter 1000 \
+  --n_workers 16 \
+  --n_directions 8 \
+  --deltas_used 8 \
+  --step_size 0.02 \
+  --delta_std 0.03 \
+  --shift 0 \
+  --filter MeanStdFilter
+```
+
+#### Walker2d
+
+```
+python3 code/ars.py \
+  --env_name Walker2d-v4 \
+  --n_iter 1000 \
+  --n_workers 16 \
+  --n_directions 60 \
+  --deltas_used 60 \
+  --step_size 0.025 \
+  --delta_std 0.01 \
+  --shift 1 \
+  --filter MeanStdFilter
+```
+
+#### Ant
+
+```
+python3 code/ars.py \
+  --env_name Ant-v4 \
+  --n_iter 1000 \
+  --n_workers 16 \
+  --n_directions 40 \
+  --deltas_used 40 \
+  --step_size 0.01 \
+  --delta_std 0.025 \
+  --shift 1 \
+  --filter MeanStdFilter
+```
+
+#### Humanoid
+
+```
+python3 code/ars.py \
+  --env_name Humanoid-v4 \
+  --n_iter 1000 \
+  --n_workers 16 \
+  --n_directions 230 \
+  --deltas_used 230 \
+  --step_size 0.02 \
+  --delta_std 0.0075 \
+  --shift 5 \
+  --filter MeanStdFilter
+```
+
+### ARS V2 t
+
+#### Swimmer
+
+```
+python3 code/ars.py \
+  --env_name Swimmer-v4 \
+  --n_iter 1000 \
+  --n_workers 16 \
+  --n_directions 1 \
+  --deltas_used 1 \
+  --step_size 0.02 \
+  --delta_std 0.01 \
+  --shift 0 \
+  --filter MeanStdFilter
+```
+
+#### Hopper
+
+```
+python3 code/ars.py \
+  --env_name Hopper-v4 \
+  --n_iter 1000 \
+  --n_workers 16 \
+  --n_directions 8 \
+  --deltas_used 4 \
+  --step_size 0.01 \
+  --delta_std 0.025 \
+  --shift 1 \
+  --filter MeanStdFilter
+```
+
+#### HalfCheetah
+
+```
+python3 code/ars.py \
+  --env_name HalfCheetah-v4 \
+  --n_iter 1000 \
+  --n_workers 16 \
+  --n_directions 32 \
+  --deltas_used 4 \
+  --step_size 0.02 \
+  --delta_std 0.03 \
+  --shift 0 \
+  --filter MeanStdFilter
+```
+
+#### Walker2d
+
+```
+python3 code/ars.py \
+  --env_name Walker2d-v4 \
+  --n_iter 1000 \
+  --n_workers 16 \
+  --n_directions 40 \
+  --deltas_used 30 \
+  --step_size 0.03 \
+  --delta_std 0.025 \
+  --shift 1 \
+  --filter MeanStdFilter
+```
+
+#### Ant
+
+```
+python3 code/ars.py \
+  --env_name Ant-v4 \
+  --n_iter 1000 \
+  --n_workers 16 \
+  --n_directions 60 \
+  --deltas_used 20 \
+  --step_size 0.015 \
+  --delta_std 0.025 \
+  --shift 1 \
+  --filter MeanStdFilter
+```
+
+#### Humanoid
+
+```
+python3 code/ars.py \
+  --env_name Humanoid-v4 \
+  --n_iter 1000 \
+  --n_workers 16 \
+  --n_directions 230 \
+  --deltas_used 230 \
+  --step_size 0.02 \
+  --delta_std 0.0075 \
+  --shift 5 \
+  --filter MeanStdFilter
+```
+
+For Humanoid the V2 t entries in the table have N equal to b so V2 and V2 t coincide.
