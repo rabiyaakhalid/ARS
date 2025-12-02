@@ -432,7 +432,6 @@ if __name__ == '__main__':
     # for ARS V1 use filter = 'NoFilter'
     parser.add_argument('--filter', type=str, default='MeanStdFilter')
 
-    local_ip = socket.gethostbyname(socket.gethostname())
     ray.init()
     
     args = parser.parse_args()
