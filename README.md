@@ -224,3 +224,120 @@ python3 code/ars.py \
 ```
 
 For Humanoid the V2 t entries in the table have N equal to b so V2 and V2 t coincide.
+
+## ARS Directional (Evolution-Path Biased ARS)
+
+`code/ars_directional.py` extends the vanilla algorithm with an evolution-path memory. Instead of sampling completely new perturbations each iteration, the learner keeps an exponential moving average of recent updates (the “evolution path”) and blends future noise directions toward that path. This mild directional bias reuses the trends of past successful updates, smoothing convergence without switching to a full optimizer such as Adam.
+
+Key extras compared to `code/ars.py`:
+
+- `--directional_alpha`: how much of each perturbation should align with the evolution path (0.0 means pure isotropic noise).
+- `--directional_beta`: decay factor for the path; smaller values forget past updates faster.
+- `--directional_min_norm`: minimal path norm before bias activates (prevents early noise from causing bias).
+- `--directional_warmup_iters`: number of iterations to run with pure isotropic exploration before turning on directional bias. Set this to a few hundred steps if you want early exploration to match the original ARS behavior.
+
+Whenever the bias is active, the worker and learner deterministically transform the shared-noise deltas so mirrored rollouts remain reproducible. Evaluation rollouts always run without directional noise.
+
+### Example: Hopper with Directional Bias
+
+```
+python3 code/ars_directional.py \
+  --env_name Hopper-v4 \
+  --n_iter 2000 \
+  --n_workers 32 \
+  --n_directions 320 \
+  --deltas_used 160 \
+  --step_size 0.02 \
+  --delta_std 0.02 \
+  --shift 1 \
+  --filter MeanStdFilter \
+  --directional_alpha 0.2 \
+  --directional_beta 0.8 \
+  --directional_min_norm 1e-5 \
+  --directional_warmup_iters 200 \
+  --dir_path results/directional/Hopper
+```
+
+### Example: Walker2d with Warm-up
+
+```
+python3 code/ars_directional.py \
+  --env_name Walker2d-v4 \
+  --n_iter 2000 \
+  --n_workers 32 \
+  --n_directions 320 \
+  --deltas_used 160 \
+  --step_size 0.02 \
+  --delta_std 0.03 \
+  --shift 1 \
+  --filter MeanStdFilter \
+  --directional_alpha 0.15 \
+  --directional_beta 0.6 \
+  --directional_min_norm 1e-5 \
+  --directional_warmup_iters 400 \
+  --dir_path results/directional/Walker
+```
+
+### Additional Directional Recipes
+
+**HalfCheetah**
+
+```
+python3 code/ars_directional.py \
+  --env_name HalfCheetah-v4 \
+  --n_iter 2000 \
+  --n_workers 32 \
+  --n_directions 320 \
+  --deltas_used 160 \
+  --step_size 0.02 \
+  --delta_std 0.03 \
+  --shift 0 \
+  --filter MeanStdFilter \
+  --directional_alpha 0.15 \
+  --directional_beta 0.7 \
+  --directional_min_norm 1e-5 \
+  --directional_warmup_iters 300 \
+  --dir_path results/directional/HalfCheetah
+```
+
+**Ant**
+
+```
+python3 code/ars_directional.py \
+  --env_name Ant-v4 \
+  --n_iter 2000 \
+  --n_workers 32 \
+  --n_directions 320 \
+  --deltas_used 160 \
+  --step_size 0.015 \
+  --delta_std 0.025 \
+  --shift 1 \
+  --filter MeanStdFilter \
+  --directional_alpha 0.15 \
+  --directional_beta 0.7 \
+  --directional_min_norm 1e-5 \
+  --directional_warmup_iters 300 \
+  --dir_path results/directional/Ant
+```
+
+**Humanoid**
+
+```
+python3 code/ars_directional.py \
+  --env_name Humanoid-v4 \
+  --n_iter 3000 \
+  --n_workers 64 \
+  --n_directions 400 \
+  --deltas_used 200 \
+  --step_size 0.02 \
+  --delta_std 0.0075 \
+  --shift 5 \
+  --filter MeanStdFilter \
+  --directional_alpha 0.1 \
+  --directional_beta 0.8 \
+  --directional_min_norm 1e-5 \
+  --directional_warmup_iters 500 \
+  --dir_path results/directional/Humanoid
+```
+
+Feel free to tweak `directional_alpha`, warm-up length, and `delta_std` per task—the recipes above mirror the paper’s base hyperparameters while adding directional bias once the warm-up window passes.
