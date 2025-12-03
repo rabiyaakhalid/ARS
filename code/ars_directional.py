@@ -226,6 +226,8 @@ class ARSLearner(object):
         self.directional_alpha = float(np.clip(self.params.get('directional_alpha', 0.0), 0.0, 1.0))
         self.directional_beta = float(np.clip(self.params.get('directional_beta', 0.8), 0.0, 0.999))
         self.directional_min_norm = float(max(1e-9, self.params.get('directional_min_norm', 1e-6)))
+        self.directional_warmup_iters = int(max(0, self.params.get('directional_warmup_iters', 0)))
+        self.iteration = 0
 
         
         # create shared table for storing noise
@@ -358,6 +360,9 @@ class ARSLearner(object):
         if evaluate or self.directional_alpha <= 0.0:
             return None, 0.0
 
+        if self.iteration < self.directional_warmup_iters:
+            return None, 0.0
+
         norm = np.linalg.norm(self.evolution_path)
         if norm <= self.directional_min_norm:
             return None, 0.0
@@ -384,6 +389,7 @@ class ARSLearner(object):
         step = self.optimizer._compute_step(g_hat).reshape(self.w_policy.shape)
         self.w_policy -= step
         self._update_evolution_path(-step)
+        self.iteration += 1
         return
 
     def train(self, num_iter):
@@ -501,6 +507,7 @@ if __name__ == '__main__':
     parser.add_argument('--directional_alpha', type=float, default=0.0)
     parser.add_argument('--directional_beta', type=float, default=0.8)
     parser.add_argument('--directional_min_norm', type=float, default=1e-6)
+    parser.add_argument('--directional_warmup_iters', type=int, default=0)
 
     # for ARS V1 use filter = 'NoFilter'
     parser.add_argument('--filter', type=str, default='MeanStdFilter')
